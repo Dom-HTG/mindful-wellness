@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-sans: "Figtree", system-ui, sans-serif;
+
+  --color-bone: #faf7f0;
+  --color-bone-50: #fdfcf8;
+
+  --color-forest: #211d16;
+  --color-forest-deep: #17130e;
+
+  --color-moss: #8a6b41;
+  --color-moss-dark: #6e5530;
+  --color-moss-light: #f3ede0;
+
+  --color-amber: #9f5a2a;
+  --color-amber-dark: #8a4a20;
+  --color-amber-light: #f0e2d3;
+
+  --color-ink: #262119;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-bone);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .dark body {
+    background-color: var(--color-forest-deep);
+    color: var(--color-bone);
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-amber) 24%, transparent);
+    color: var(--color-ink);
+  }
+  .dark ::selection {
+    background-color: color-mix(in srgb, var(--color-amber) 34%, transparent);
+    color: var(--color-bone);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
