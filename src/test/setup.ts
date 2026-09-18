@@ -63,5 +63,7 @@ vi.mock("motion/react", () => {
     useScroll: () => ({ scrollY: { get: () => 0 }, scrollYProgress: { get: () => 0 } }),
     useMotionValueEvent: () => undefined,
     useTransform: () => undefined,
+    useInView: () => true,
+    animate: () => ({ stop: () => undefined }),
   };
 });

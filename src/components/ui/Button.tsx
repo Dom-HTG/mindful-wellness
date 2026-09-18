@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { cn } from "../../lib/utils";
 
 type Variant = "primary" | "secondary" | "moss" | "ghost";
@@ -8,6 +9,7 @@ interface ButtonProps {
   variant?: Variant;
   size?: Size;
   href?: string;
+  to?: string;
   icon?: ReactNode;
   iconRight?: ReactNode;
   fullWidth?: boolean;
@@ -41,6 +43,7 @@ export function Button({
   variant = "primary",
   size = "md",
   href,
+  to,
   icon,
   iconRight,
   fullWidth,
@@ -57,6 +60,16 @@ export function Button({
     fullWidth && "w-full",
     className,
   );
+
+  if (to) {
+    return (
+      <Link to={to} onClick={onClick} className={classes} aria-label={ariaLabel}>
+        {icon}
+        {children}
+        {iconRight}
+      </Link>
+    );
+  }
 
   if (href) {
     return (

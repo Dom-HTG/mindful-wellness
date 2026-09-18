@@ -1,6 +1,6 @@
 export const CLINIC_CONFIG = {
-  name: "Mindful Weightful Loss Clinic",
-  email: "support@mindfulweightful.com",
+  name: "Mindful Wellness Clinic",
+  email: "support@mindfulwellness.io",
   phone: "(555) 321-9876",
   address: {
     line1: "120 Wellness Way, Suite 400",
@@ -12,7 +12,7 @@ export const CLINIC_CONFIG = {
     { days: "Sat — Sun", time: "Closed", muted: true },
   ] as { days: string; time: string; muted?: boolean }[],
   web3formsKey: "",
-  productionUrl: "https://mindfulweightful.vercel.app",
+  productionUrl: "https://mindfulwellness.io",
   crisisLine: {
     label: "24/7 Crisis Support",
     number: "988",

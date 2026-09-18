@@ -8,6 +8,7 @@ import {
   QrCode,
   WarningOctagon,
 } from "@phosphor-icons/react";
+import { Link } from "react-router-dom";
 import { CLINIC_CONFIG } from "../lib/config";
 import { useApp } from "../context/AppProvider";
 import { copyText } from "../lib/clipboard";
@@ -22,24 +23,24 @@ export function Footer() {
   };
 
   const links = [
-    { label: "Our Pillars & Offerings", href: "#services" },
-    { label: "Practitioner Credentials", href: "#credentials" },
-    { label: "Client Testimonials", href: "#testimonials" },
-    { label: "Frequently Asked Questions", href: "#faqs" },
+    { label: "Our Pillars & Offerings", to: "/services" },
+    { label: "Practitioner Credentials", to: "/about" },
+    { label: "Client Testimonials", to: "/#testimonials" },
+    { label: "Frequently Asked Questions", to: "/#faqs" },
   ];
 
   return (
     <footer className="border-t border-moss/10 bg-forest-deep text-bone">
       <Container className="grid grid-cols-1 gap-12 py-16 md:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-6">
-          <a href="#top" className="flex items-center gap-2.5">
+          <Link to="/" className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-moss text-bone-50">
               <Plant size={22} weight="fill" />
             </span>
             <span className="font-display text-lg font-semibold">
-              Mindful Weightful
+              Mindful Wellness
             </span>
-          </a>
+          </Link>
           <p className="text-sm leading-relaxed text-bone/70">
             A board-certified psychiatric nursing and clinical health practice
             helping clients rewrite behavioral habits and build vibrant
@@ -76,10 +77,10 @@ export function Footer() {
           </h4>
           <ul className="space-y-3 text-sm text-bone/70">
             {links.map((link) => (
-              <li key={link.href}>
-                <a href={link.href} className="transition-colors hover:text-amber">
+              <li key={link.to}>
+                <Link to={link.to} className="transition-colors hover:text-amber">
                   {link.label}
-                </a>
+                </Link>
               </li>
             ))}
             <li>

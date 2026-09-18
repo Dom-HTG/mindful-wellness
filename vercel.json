@@ -1,7 +1,8 @@
 {
   "version": 2,
-  "name": "mindful-weightful-clinic",
+  "name": "mindful-wellness-clinic",
   "cleanUrls": true,
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "headers": [
     {
       "source": "/(.*)",

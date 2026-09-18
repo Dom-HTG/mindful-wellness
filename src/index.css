@@ -23,7 +23,15 @@
   --color-ink: #262119;
   --color-muted: #776c5d;
 
+  --animate-marquee: marquee 34s linear infinite;
+
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-100%);
+  }
 }
 
 @layer base {

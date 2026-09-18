@@ -253,7 +253,7 @@ export function BookingModal() {
                           Lead Psychiatric NP
                         </p>
                         <p className="mt-0.5 text-xs text-bone/70">
-                          Mindful Weightful Clinic
+                          Mindful Wellness Clinic
                         </p>
                       </div>
                     </div>

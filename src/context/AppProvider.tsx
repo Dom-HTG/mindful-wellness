@@ -27,6 +27,9 @@ interface AppContextValue {
   qrService: string;
   openQr: (service?: string) => void;
   closeQr: () => void;
+  chatOpen: boolean;
+  openChat: () => void;
+  closeChat: () => void;
   toasts: ToastItem[];
   toast: (message: string) => void;
 }
@@ -47,6 +50,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [bookingNotes, setBookingNotes] = useState("");
   const [qrOpen, setQrOpen] = useState(false);
   const [qrService, setQrService] = useState("");
+  const [chatOpen, setChatOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   useEffect(() => {
@@ -82,6 +86,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const closeQr = useCallback(() => setQrOpen(false), []);
 
+  const openChat = useCallback(() => setChatOpen(true), []);
+  const closeChat = useCallback(() => setChatOpen(false), []);
+
   const value = useMemo<AppContextValue>(
     () => ({
       theme,
@@ -95,6 +102,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       qrService,
       openQr,
       closeQr,
+      chatOpen,
+      openChat,
+      closeChat,
       toasts,
       toast,
     }),
@@ -110,6 +120,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       qrService,
       openQr,
       closeQr,
+      chatOpen,
+      openChat,
+      closeChat,
       toasts,
       toast,
     ],

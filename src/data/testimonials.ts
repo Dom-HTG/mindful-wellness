@@ -8,7 +8,7 @@ export interface Testimonial {
 export const TESTIMONIALS: Testimonial[] = [
   {
     quote:
-      "Mindful Weightful Clinic changed my entire life dynamic. For the first time ever, I felt zero guilt. I lost 35 lbs organically, but more importantly, I found absolute peace of mind.",
+      "Mindful Wellness Clinic changed my entire life dynamic. For the first time ever, I felt zero guilt. I lost 35 lbs organically, but more importantly, I found absolute peace of mind.",
     name: "Sarah M.",
     initials: "SM",
     detail: "Active Client — 14 Months",

@@ -35,7 +35,7 @@ export function FloatingControls() {
         initial={false}
         animate={{ opacity: past ? 1 : 0, y: past ? 0 : 16 }}
         transition={{ duration: 0.3 }}
-        className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-moss text-bone-50 shadow-lg transition-colors hover:bg-moss-dark"
+        className="fixed bottom-24 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-moss text-bone-50 shadow-lg transition-colors hover:bg-moss-dark"
         style={{ pointerEvents: past ? "auto" : "none" }}
       >
         <ArrowUp size={20} />
