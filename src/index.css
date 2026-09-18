@@ -21,6 +21,7 @@
   --color-amber-light: #f0e2d3;
 
   --color-ink: #262119;
+  --color-muted: #776c5d;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }

@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from "motion/react";
-import { Stethoscope, Medal, Heart } from "@phosphor-icons/react";
+import { Stethoscope, Heart } from "@phosphor-icons/react";
 import { useApp } from "../context/AppProvider";
 import { Button } from "./ui/Button";
 
@@ -68,50 +68,28 @@ export function Hero() {
         </div>
 
         <div className="lg:col-span-6">
-          <motion.div
-            initial={reduce ? false : { opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
+          <motion.figure
+            initial={reduce ? false : { opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="relative mx-auto max-w-md"
           >
-            <div className="relative flex items-end justify-center overflow-hidden rounded-t-[160px] rounded-b-[28px] bg-gradient-to-b from-moss-light via-moss/15 to-moss/30 dark:from-moss/20 dark:via-moss/10 dark:to-moss/30">
-              <div className="pointer-events-none absolute top-16 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full border border-moss/20" />
-              <div className="pointer-events-none absolute top-8 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full border border-moss/10" />
+            <div className="relative flex items-end justify-center overflow-hidden rounded-2xl border border-moss/20 bg-moss-light/70">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-moss/10 to-transparent" />
               <img
                 src="/primary_nurse_cutout.png"
                 alt="Lead psychiatric nurse practitioner"
-                className="relative z-10 h-[420px] w-auto object-contain object-bottom md:h-[500px]"
+                className="relative z-10 h-[420px] w-auto object-contain object-bottom md:h-[520px]"
               />
-
-              <div className="absolute top-10 right-2 z-20 flex items-center gap-3 rounded-2xl border border-moss/15 bg-bone/90 p-3 shadow-lg backdrop-blur-md dark:bg-forest/90 dark:border-bone/10 md:-right-4">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-moss text-bone-50">
-                  <Stethoscope size={20} />
-                </span>
-                <div className="leading-tight">
-                  <p className="text-sm font-semibold text-ink dark:text-bone">
-                    Lead Clinician
-                  </p>
-                  <p className="mt-0.5 text-[11px] font-medium text-moss dark:text-amber">
-                    PMHNP-BC Certified
-                  </p>
-                </div>
-              </div>
-
-              <div className="absolute bottom-8 left-2 z-20 flex items-center gap-3 rounded-2xl border border-moss/15 bg-bone/90 p-3 shadow-lg backdrop-blur-md dark:bg-forest/90 dark:border-bone/10 md:-left-4">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-light text-amber-dark">
-                  <Medal size={20} weight="fill" />
-                </span>
-                <div className="leading-tight">
-                  <p className="text-sm font-semibold text-ink dark:text-bone">
-                    15+ Yrs Practice
-                  </p>
-                  <p className="mt-0.5 text-[11px] font-medium text-ink/60 dark:text-bone/60">
-                    Psychiatric Nursing Care
-                  </p>
-                </div>
-              </div>
             </div>
-          </motion.div>
+            <figcaption className="mt-4 flex items-center justify-between gap-4 border-t border-moss/15 pt-4 text-xs font-medium text-muted">
+              <span className="flex items-center gap-2">
+                <Stethoscope size={16} className="text-amber" />
+                Lead Clinician — PMHNP-BC
+              </span>
+              <span>15+ Years Practice</span>
+            </figcaption>
+          </motion.figure>
         </div>
       </div>
     </section>
