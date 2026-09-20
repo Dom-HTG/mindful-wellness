@@ -10,6 +10,7 @@ const QR_SERVICES = [
   { value: "", label: "All Offerings (General Clinical Intake)" },
   { value: "Psychological Counseling", label: "Psychiatry & Behavioral" },
   { value: "Nutritional Counseling", label: "Nutritional & Metabolic Health" },
+  { value: "General Consultation", label: "General Consultation" },
 ];
 
 export function QrModal() {

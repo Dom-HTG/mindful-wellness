@@ -61,7 +61,7 @@ const DURATIONS = [
 const SERVICE_OPTIONS: { value: string; label: string; icon: Icon }[] = [
   { value: "Psychiatry", label: "Psychiatry", icon: Brain },
   { value: "Nutritional Counseling", label: "Mindful Nutrition", icon: BowlFood },
-  { value: "General Inquiry", label: "General Consultation", icon: Sparkle },
+  { value: "General Consultation", label: "General Consultation", icon: Sparkle },
 ];
 
 const SERVICE_ALIASES: Record<string, string> = {

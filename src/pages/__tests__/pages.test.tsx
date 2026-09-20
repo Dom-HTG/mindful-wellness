@@ -44,5 +44,8 @@ describe("ServicesPage", () => {
     expect(
       screen.getByRole("heading", { name: /nutritional counseling/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /general consultation/i }),
+    ).toBeInTheDocument();
   });
 });

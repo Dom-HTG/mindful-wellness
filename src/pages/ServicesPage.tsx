@@ -48,12 +48,28 @@ const DETAILS: ServiceDetail[] = [
     whoFor:
       "People ready to rebuild a peaceful, flexible relationship with food.",
   },
+  {
+    icon: Sparkle,
+    name: "General Consultation",
+    tagline: "Start here",
+    overview:
+      "Not sure where to begin? A relaxed, no-pressure conversation to talk through your goals, ask questions, and find the right path for your wellness journey.",
+    included: [
+      "Initial wellness goals review",
+      "Personalized care recommendations",
+      "Guidance on next steps",
+      "One-to-one 30-minute session",
+    ],
+    whoFor:
+      "Anyone exploring care who wants guidance before choosing a specific service.",
+  },
 ];
 
-const COMPARISON: { focus: string; values: [boolean, boolean] }[] = [
-  { focus: "Behavioral therapy", values: [true, false] },
-  { focus: "Meal & pantry frameworks", values: [false, true] },
-  { focus: "One-to-one coaching", values: [true, true] },
+const COMPARISON: { focus: string; values: [boolean, boolean, boolean] }[] = [
+  { focus: "Behavioral therapy", values: [true, false, false] },
+  { focus: "Meal & pantry frameworks", values: [false, true, false] },
+  { focus: "One-to-one coaching", values: [true, true, true] },
+  { focus: "Guidance & next steps", values: [false, false, true] },
 ];
 
 export function ServicesPage() {
@@ -72,9 +88,9 @@ export function ServicesPage() {
               Personalized, science-backed care.
             </h1>
             <p className="mx-auto max-w-xl text-lg leading-relaxed text-ink/70 dark:text-bone/70">
-              Two pillars, one journey. We combine psychiatric and
-              psychological care with functional nutrition into a single,
-              cohesive plan.
+              Three pillars, one journey. We combine psychiatric and
+              psychological care, functional nutrition, and personalized
+              guidance into a single, cohesive plan.
             </p>
             <div className="flex flex-col items-center justify-center gap-3 pt-1 sm:flex-row">
               <Button onClick={() => openBooking()} iconRight={<Heart size={18} weight="fill" />}>
