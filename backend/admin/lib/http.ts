@@ -10,6 +10,7 @@ export interface ApiResponse {
   status: number;
   body: unknown;
   headers?: Record<string, string>;
+  stream?: ReadableStream<Uint8Array>;
 }
 
 export function json(

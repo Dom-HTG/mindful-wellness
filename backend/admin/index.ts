@@ -14,6 +14,7 @@ import {
   listBookings,
   updateBooking,
 } from "./handlers/bookings";
+import { handleChat } from "../chatbot";
 
 const BOOKING_PATH = /^\/admin\/bookings\/([^/]+)$/;
 
@@ -31,6 +32,10 @@ export async function routeApiRequest(
 
     if (path === "/bookings" && method === "POST") {
       return await createBooking(req, ctx);
+    }
+
+    if (path === "/chat" && method === "POST") {
+      return await handleChat(req, ctx);
     }
 
     if (path === "/admin/me" && method === "GET") {

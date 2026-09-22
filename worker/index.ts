@@ -1,6 +1,5 @@
 import { routeApiRequest } from "../backend/admin/index";
 import { createEdgeContext } from "../backend/admin/lib/context-edge";
-import type { EnvRecord } from "../backend/admin/lib/config";
 import type { ApiRequest, ApiResponse } from "../backend/admin/lib/http";
 
 interface AssetsBinding {
@@ -69,6 +68,10 @@ function toResponse(api: ApiResponse): Response {
     headers.set(key, value);
   }
 
+  if (api.stream) {
+    return new Response(api.stream, { status: api.status, headers });
+  }
+
   const body =
     api.body === undefined
       ? null
@@ -77,14 +80,6 @@ function toResponse(api: ApiResponse): Response {
         : JSON.stringify(api.body);
 
   return new Response(body, { status: api.status, headers });
-}
-
-function envRecord(env: WorkerEnv): EnvRecord {
-  const record: EnvRecord = {};
-  for (const [key, value] of Object.entries(env)) {
-    if (typeof value === "string") record[key] = value;
-  }
-  return record;
 }
 
 export default {
@@ -96,7 +91,7 @@ export default {
         const apiRequest = await toApiRequest(request);
         const apiResponse = await routeApiRequest(
           apiRequest,
-          createEdgeContext(envRecord(env)),
+          createEdgeContext(env),
         );
         return toResponse(apiResponse);
       } catch (err) {

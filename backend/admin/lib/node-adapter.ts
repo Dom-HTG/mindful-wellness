@@ -49,6 +49,12 @@ export function sendApiResponse(
   for (const [key, value] of Object.entries(response.headers ?? {})) {
     res.setHeader(key, value);
   }
+
+  if (response.stream) {
+    void pumpStream(res, response.stream);
+    return;
+  }
+
   if (response.body === undefined) {
     res.end();
     return;
@@ -62,4 +68,21 @@ export function sendApiResponse(
       ? response.body
       : JSON.stringify(response.body),
   );
+}
+
+async function pumpStream(
+  res: ServerResponse,
+  stream: ReadableStream<Uint8Array>,
+): Promise<void> {
+  const reader = stream.getReader();
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(value);
+    }
+  } finally {
+    res.end();
+    reader.releaseLock();
+  }
 }

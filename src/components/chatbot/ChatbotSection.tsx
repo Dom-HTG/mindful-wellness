@@ -25,15 +25,15 @@ export function ChatbotSection() {
           <Reveal className="space-y-5 lg:col-span-5">
             <p className="inline-flex items-center gap-2 rounded-full border border-moss/20 bg-bone px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-moss dark:border-bone/15 dark:bg-bone/5 dark:text-amber">
               <Sparkle size={14} weight="fill" />
-              Coming Soon
+              Live Assistant
             </p>
             <h2 className="font-display text-3xl font-semibold leading-[1.12] text-ink md:text-4xl dark:text-bone text-balance">
               Meet your wellness assistant
             </h2>
             <p className="max-w-md leading-relaxed text-ink/70 dark:text-bone/70">
               A calm, always-available companion for your questions — from how
-              our programs work to what a first visit looks like. We&rsquo;re
-              building it now.
+              our programs work to what a first visit looks like. Ask anything,
+              or book a consultation right in the chat.
             </p>
             <button
               type="button"
@@ -41,7 +41,7 @@ export function ChatbotSection() {
               className="inline-flex items-center gap-2 rounded-xl bg-amber px-6 py-3 text-sm font-semibold text-bone-50 shadow-sm transition-colors hover:bg-amber-dark"
             >
               <ChatCircleDots size={18} weight="fill" />
-              Try the preview
+              Start a conversation
               <ArrowRight size={16} />
             </button>
           </Reveal>
@@ -58,7 +58,7 @@ export function ChatbotSection() {
                   </p>
                   <p className="flex items-center gap-1.5 text-[11px] text-ink/50 dark:text-bone/50">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    Online preview
+                    Online now
                   </p>
                 </div>
               </div>

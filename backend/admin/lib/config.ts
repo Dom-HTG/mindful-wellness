@@ -5,7 +5,9 @@ function defaultEnv(): EnvRecord {
   return proc?.env ?? {};
 }
 
-export function normalizeEnv(env: EnvRecord | undefined | null): EnvRecord {
+export function normalizeEnv(
+  env: Record<string, unknown> | undefined | null,
+): EnvRecord {
   const out: EnvRecord = {};
   if (!env) return out;
   for (const [key, value] of Object.entries(env)) {

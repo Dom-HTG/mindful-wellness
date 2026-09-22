@@ -9,6 +9,11 @@ not_found_handling = "single-page-application"
 
 [vars]
 BOOKINGS_COLLECTION = "bookings"
+CHAT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+SLOT_CAPACITY = "1"
+
+[ai]
+binding = "AI"
 
 [observability]
 enabled = true

@@ -5,8 +5,14 @@ import {
   X,
   PaperPlaneTilt,
   Sparkle,
+  CalendarCheck,
 } from "@phosphor-icons/react";
 import { useApp } from "../../context/AppProvider";
+import {
+  streamChat,
+  type BookingConfirmation,
+  type ChatTurn,
+} from "../../lib/chatApi";
 
 export interface ChatMessage {
   id: string;
@@ -18,12 +24,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
   {
     id: "m1",
     role: "assistant",
-    text: "Hi, I'm the Mindful Wellness assistant.",
-  },
-  {
-    id: "m2",
-    role: "assistant",
-    text: "I'll soon be able to answer questions about our programs, check coverage, and help you book a consultation.",
+    text: "Hi, I'm the Mindful Wellness assistant. I can answer questions and help you book a consultation.",
   },
 ];
 
@@ -33,20 +34,15 @@ const QUICK_REPLIES = [
   "Book a consultation",
 ];
 
-const CANNED_REPLIES = [
-  "Good question — our clinical team will answer that in full once live chat launches.",
-  "In the meantime, you can book a free consultation and we'll follow up within 24 hours.",
-  "I've noted that for your intake. Anything else you'd like to add?",
-];
-
-let replyIndex = 0;
-
 export function ChatWidget() {
-  const { openBooking, chatOpen: open, openChat, closeChat } = useApp();
+  const { openBooking, chatOpen: open, openChat, closeChat, toast } = useApp();
   const reduce = useReducedMotion();
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [draft, setDraft] = useState("");
+  const [pending, setPending] = useState(false);
+  const [confirmed, setConfirmed] = useState<BookingConfirmation | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const setOpen = (v: boolean) => (v ? openChat() : closeChat());
 
@@ -54,7 +50,7 @@ export function ChatWidget() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, open]);
+  }, [messages, open, pending]);
 
   useEffect(() => {
     if (!open) return;
@@ -65,26 +61,80 @@ export function ChatWidget() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, closeChat]);
 
-  const send = (text: string) => {
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+    },
+    [],
+  );
+
+  const send = async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed || pending) return;
+
     const userMessage: ChatMessage = {
       id: `u-${Date.now()}`,
       role: "user",
       text: trimmed,
     };
-    setMessages((prev) => [...prev, userMessage]);
-    setDraft("");
+    const assistantId = `a-${Date.now()}`;
+    const assistantMessage: ChatMessage = {
+      id: assistantId,
+      role: "assistant",
+      text: "",
+    };
 
-    // Placeholder response — replace with a real chat API later.
-    const reply = CANNED_REPLIES[replyIndex % CANNED_REPLIES.length];
-    replyIndex += 1;
-    window.setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { id: `a-${Date.now()}`, role: "assistant", text: reply },
-      ]);
-    }, 700);
+    const history: ChatTurn[] = [...messages, userMessage].map((m) => ({
+      role: m.role,
+      content: m.text,
+    }));
+
+    setMessages((prev) => [...prev, userMessage, assistantMessage]);
+    setDraft("");
+    setPending(true);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    await streamChat(
+      history,
+      {
+        onToken: (value) => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, text: m.text + value } : m,
+            ),
+          );
+        },
+        onBooking: (booking) => {
+          setConfirmed(booking);
+          toast(`Consultation requested for ${booking.date} (${booking.timeSlot}).`);
+        },
+        onError: (message) => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId && !m.text ? { ...m, text: message } : m,
+            ),
+          );
+        },
+        onDone: () => {
+          setPending(false);
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId && !m.text
+                ? {
+                    ...m,
+                    text: "Sorry, I didn't catch that. Could you try again?",
+                  }
+                : m,
+            ),
+          );
+        },
+      },
+      { signal: controller.signal, booking: confirmed },
+    );
+
+    abortRef.current = null;
   };
 
   return (
@@ -117,7 +167,7 @@ export function ChatWidget() {
                 </p>
                 <p className="flex items-center gap-1.5 text-[11px] text-bone/70">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  Preview — coming soon
+                  {pending ? "Typing…" : "Online"}
                 </p>
               </div>
               <button
@@ -138,41 +188,64 @@ export function ChatWidget() {
                 <div
                   key={m.id}
                   className={
-                    m.role === "user"
-                      ? "flex justify-end"
-                      : "flex justify-start"
+                    m.role === "user" ? "flex justify-end" : "flex justify-start"
                   }
                 >
-                  <p
-                    className={
-                      m.role === "user"
-                        ? "max-w-[85%] rounded-2xl rounded-br-sm bg-moss px-3.5 py-2.5 text-sm text-bone-50"
-                        : "max-w-[85%] rounded-2xl rounded-bl-sm border border-moss/15 bg-bone px-3.5 py-2.5 text-sm text-ink"
-                    }
-                  >
-                    {m.text}
-                  </p>
+                  {m.role === "assistant" && !m.text ? (
+                    <span className="flex items-center gap-1.5 rounded-2xl rounded-bl-sm border border-moss/15 bg-bone px-3.5 py-3">
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-moss/50" />
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-moss/50 [animation-delay:150ms]" />
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-moss/50 [animation-delay:300ms]" />
+                    </span>
+                  ) : (
+                    <p
+                      className={
+                        m.role === "user"
+                          ? "max-w-[85%] rounded-2xl rounded-br-sm bg-moss px-3.5 py-2.5 text-sm text-bone-50"
+                          : "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm border border-moss/15 bg-bone px-3.5 py-2.5 text-sm text-ink"
+                      }
+                    >
+                      {m.text}
+                    </p>
+                  )}
                 </div>
               ))}
 
-              <div className="flex flex-wrap gap-2 pt-1">
-                {QUICK_REPLIES.map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => send(q)}
-                    className="rounded-full border border-moss/25 bg-bone px-3 py-1.5 text-xs font-medium text-ink/80 transition-colors hover:border-moss hover:text-moss"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
+              {confirmed ? (
+                <div className="flex items-start gap-2.5 rounded-2xl border border-emerald-300/60 bg-emerald-50 px-3.5 py-3 text-xs text-emerald-900">
+                  <CalendarCheck size={18} weight="fill" className="mt-0.5 shrink-0 text-emerald-600" />
+                  <div className="space-y-0.5">
+                    <p className="font-semibold">Consultation requested</p>
+                    <p>
+                      {confirmed.service} · {confirmed.date} · {confirmed.timeSlot}
+                    </p>
+                    <p className="text-emerald-700/80">
+                      Reference {confirmed.id.slice(0, 8)}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
+              {!pending && messages.length <= 2 ? (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {QUICK_REPLIES.map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => void send(q)}
+                      className="rounded-full border border-moss/25 bg-bone px-3 py-1.5 text-xs font-medium text-ink/80 transition-colors hover:border-moss hover:text-moss"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                send(draft);
+                void send(draft);
               }}
               className="flex items-center gap-2 border-t border-moss/15 bg-bone px-3 py-3"
             >
@@ -181,12 +254,14 @@ export function ChatWidget() {
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="Ask a question…"
                 aria-label="Chat message"
-                className="min-w-0 flex-1 rounded-xl border border-moss/25 bg-bone px-3 py-2.5 text-sm text-ink outline-none placeholder:text-ink/40 focus:ring-2 focus:ring-moss"
+                disabled={pending}
+                className="min-w-0 flex-1 rounded-xl border border-moss/25 bg-bone px-3 py-2.5 text-sm text-ink outline-none placeholder:text-ink/40 focus:ring-2 focus:ring-moss disabled:opacity-60"
               />
               <button
                 type="submit"
                 aria-label="Send message"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber text-bone-50 transition-colors hover:bg-amber-dark"
+                disabled={pending}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber text-bone-50 transition-colors hover:bg-amber-dark disabled:opacity-60"
               >
                 <PaperPlaneTilt size={18} weight="fill" />
               </button>

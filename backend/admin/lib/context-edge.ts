@@ -7,9 +7,8 @@ import {
   getFirebaseProjectId,
   isFirebaseConfigured,
   normalizeEnv,
-  type EnvRecord,
 } from "./config";
-import type { ApiContext } from "./context";
+import type { AiBinding, ApiContext } from "./context";
 import { verifyFirebaseIdToken } from "./firebase-auth";
 import { FirestoreRestStore } from "./firestore-rest";
 import type { BookingStore } from "./store";
@@ -46,16 +45,18 @@ class UnconfiguredStore implements BookingStore {
   }
 }
 
-export function createEdgeContext(env: EnvRecord): ApiContext {
+export function createEdgeContext(env: Record<string, unknown>): ApiContext {
   const normalized = normalizeEnv({ NODE_ENV: "production", ...env });
   const store = isFirebaseConfigured(normalized)
     ? new FirestoreRestStore(normalized)
     : new UnconfiguredStore();
   const projectId = getFirebaseProjectId(normalized);
+  const ai = env.AI as AiBinding | undefined;
 
   return {
     env: normalized,
     store,
+    ai,
     verifyToken: (token) => verifyFirebaseIdToken(token, projectId),
   };
 }
