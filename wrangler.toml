@@ -9,7 +9,7 @@ not_found_handling = "single-page-application"
 
 [vars]
 BOOKINGS_COLLECTION = "bookings"
-CHAT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+CHAT_MODEL = "@cf/qwen/qwen3-30b-a3b-fp8"
 SLOT_CAPACITY = "1"
 
 [ai]

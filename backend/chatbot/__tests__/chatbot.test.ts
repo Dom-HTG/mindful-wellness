@@ -67,6 +67,32 @@ async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
   return output;
 }
 
+function collectTokens(sse: string): string {
+  let output = "";
+  for (const line of sse.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("data:")) continue;
+    try {
+      const event = JSON.parse(trimmed.slice(5).trim()) as {
+        type?: string;
+        value?: string;
+      };
+      if (event.type === "token" && event.value) output += event.value;
+    } catch {
+      // ignore
+    }
+  }
+  return output;
+}
+
+const intake = {
+  phone: "555-0100",
+  concerns: ["Metabolic Sluggishness & Low Energy"],
+  conditions: ["None"],
+  duration: "< 6 Months",
+  symptoms: "None",
+};
+
 describe("checkAvailability", () => {
   it("marks slots as available based on capacity", async () => {
     const store = memoryStore([
@@ -87,6 +113,13 @@ describe("checkAvailability", () => {
     const result = await checkAvailability("2000-01-01", context());
     expect(result.ok).toBe(false);
   });
+
+  it("refuses to check availability before the patient names a day", async () => {
+    const result = await checkAvailability("2030-05-01", context(), {
+      userText: "Hi, I'd like to book something.",
+    });
+    expect(result.ok).toBe(false);
+  });
 });
 
 describe("createChatBooking", () => {
@@ -99,6 +132,51 @@ describe("createChatBooking", () => {
     expect(result.errors?.length).toBeGreaterThan(0);
   });
 
+  it("requires the health screening before booking", async () => {
+    const store = memoryStore();
+    const result = await createChatBooking(
+      {
+        name: "Jane",
+        email: "jane@example.com",
+        service: "Psychiatry",
+        date: "2030-05-01",
+        timeSlot: "Morning",
+        phone: "555-0100",
+      },
+      context({ store }),
+    );
+    expect(result.ok).toBe(false);
+    expect(result.errors?.join(" ")).toMatch(/screening|concern/i);
+    expect(await store.list()).toHaveLength(0);
+  });
+
+  it("parses stringified array intake fields", async () => {
+    const store = memoryStore();
+    const result = await createChatBooking(
+      {
+        name: "Jane Doe",
+        email: "jane@example.com",
+        phone: "555-0100",
+        service: "Psychiatry",
+        date: "2030-05-01",
+        timeSlot: "Morning",
+        concerns: '["Binge / Emotional / Stress-Induced Eating"]',
+        conditions: '["None"]',
+        duration: "< 6 Months",
+        symptoms: "None",
+      },
+      context({ store }),
+      {
+        userText:
+          "Jane Doe jane@example.com May 1 morning, emotional eating and low energy",
+      },
+    );
+    expect(result.ok).toBe(true);
+    const saved = (await store.list())[0];
+    expect(saved.concerns).toEqual(["Binge / Emotional / Stress-Induced Eating"]);
+    expect(saved.conditions).toEqual(["None"]);
+  });
+
   it("creates a chatbot booking and returns a summary", async () => {
     const store = memoryStore();
     const result = await createChatBooking(
@@ -108,6 +186,7 @@ describe("createChatBooking", () => {
         service: "Psychiatry",
         date: "2030-05-01",
         timeSlot: "Morning",
+        ...intake,
       },
       context({ store }),
     );
@@ -135,6 +214,7 @@ describe("createChatBooking", () => {
         service: "Psychiatry",
         date: "2030-05-01",
         timeSlot: "Morning",
+        ...intake,
       },
       context({ store }),
     );
@@ -151,6 +231,7 @@ describe("createChatBooking", () => {
         service: "Psychological Counseling",
         date: "2030-05-01",
         timeSlot: "Afternoon",
+        ...intake,
       },
       context({ store }),
     );
@@ -173,6 +254,7 @@ describe("createChatBooking", () => {
         service: "Psychiatry",
         date: "2030-05-01",
         timeSlot: "Morning",
+        ...intake,
       },
       context({ store }),
       { userText: "Hi, I'd like to book something." },
@@ -190,6 +272,7 @@ describe("createChatBooking", () => {
         service: "Psychiatry",
         date: "2030-05-01",
         timeSlot: "Morning",
+        ...intake,
       },
       context({ store }),
       {
@@ -209,6 +292,7 @@ describe("createChatBooking", () => {
         service: "Psychiatry",
         date: "2030-05-01",
         timeSlot: "Morning",
+        ...intake,
       },
       context({ store }),
       { userText: "I'm Jane, my email is jane@example.com" },
@@ -249,6 +333,7 @@ describe("handleChat", () => {
               service: "Psychiatry",
               date: "2030-05-01",
               timeSlot: "Morning",
+              ...intake,
             },
           },
         ],
@@ -285,7 +370,7 @@ describe("handleChat", () => {
     expect(response.status).toBe(200);
     const text = await readStream(response.stream!);
     expect(text).toContain('"type":"booking"');
-    expect(text).toContain("You're booked in!");
+    expect(collectTokens(text)).toContain("You're booked in!");
     expect(text).toContain('"type":"done"');
     expect((await store.list())[0].source).toBe("chatbot");
   });
@@ -371,6 +456,35 @@ describe("handleChat", () => {
     const text = await readStream(response.stream!);
     expect(text).not.toContain('"type":"booking"');
     expect(await store.list()).toHaveLength(0);
+  });
+
+  it("strips reasoning blocks from the streamed answer", async () => {
+    const store = memoryStore();
+    const run = vi.fn(async (_model: string, input: Record<string, unknown>) => {
+      if (input.stream) {
+        return sseStream([
+          { response: " thinkingLet me plan. responseHello" },
+          { response: " there!" },
+        ]);
+      }
+      return { response: "" };
+    });
+
+    const response = await handleChat(
+      {
+        method: "POST",
+        path: "/chat",
+        query: {},
+        headers: {},
+        body: { messages: [{ role: "user", content: "hi" }] },
+      },
+      context({ store, ai: { run } }),
+    );
+
+    const text = await readStream(response.stream!);
+    const answer = collectTokens(text);
+    expect(answer).toBe("Hello there!");
+    expect(answer).not.toContain("Let me plan");
   });
 
   it("returns 503 when the AI binding is missing", async () => {

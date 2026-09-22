@@ -3,7 +3,7 @@ import { error, type ApiRequest, type ApiResponse } from "../admin/lib/http";
 import { buildSystemPrompt } from "./knowledge";
 import { TOOLS, executeTool, type ToolCall } from "./tools";
 
-const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const DEFAULT_MODEL = "@cf/qwen/qwen3-30b-a3b-fp8";
 const MAX_MESSAGES = 24;
 const MAX_CHARS_PER_MESSAGE = 2000;
 const MAX_TOOL_RUNS = 3;
@@ -21,7 +21,24 @@ interface ModelMessage {
 
 interface ModelResult {
   response?: string;
-  tool_calls?: { name: string; arguments?: Record<string, unknown> }[];
+  tool_calls?: { name: string; arguments?: unknown }[];
+}
+
+function normalizeArguments(value: unknown): Record<string, unknown> {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      // not JSON
+    }
+  }
+  return {};
 }
 
 function todayIso(): string {
@@ -96,6 +113,56 @@ async function runModel(
   return result ?? {};
 }
 
+class ThinkFilter {
+  private buffer = "";
+  private inThink = false;
+
+  push(chunk: string): string {
+    this.buffer += chunk;
+    let output = "";
+    for (;;) {
+      if (!this.inThink) {
+        const open = this.buffer.indexOf(" thinking");
+        if (open === -1) {
+          const keep = " thinking".length - 1;
+          if (this.buffer.length > keep) {
+            output += this.buffer.slice(0, this.buffer.length - keep);
+            this.buffer = this.buffer.slice(this.buffer.length - keep);
+          }
+          break;
+        }
+        output += this.buffer.slice(0, open);
+        this.buffer = this.buffer.slice(open + " thinking".length);
+        this.inThink = true;
+      } else {
+        const close = this.buffer.indexOf(" response");
+        if (close === -1) {
+          const keep = " response".length - 1;
+          this.buffer = this.buffer.slice(
+            Math.max(0, this.buffer.length - keep),
+          );
+          break;
+        }
+        this.buffer = this.buffer.slice(close + " response".length);
+        this.inThink = false;
+      }
+    }
+    return output;
+  }
+
+  flush(): string {
+    const wasThinking = this.inThink;
+    this.inThink = false;
+    if (wasThinking) {
+      this.buffer = "";
+      return "";
+    }
+    const out = this.buffer;
+    this.buffer = "";
+    return out;
+  }
+}
+
 function tokenStream(
   source: ReadableStream<Uint8Array>,
   preEvents: unknown[],
@@ -103,6 +170,7 @@ function tokenStream(
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
   const reader = source.getReader();
+  const filter = new ThinkFilter();
   let buffer = "";
 
   return new ReadableStream<Uint8Array>({
@@ -131,13 +199,17 @@ function tokenStream(
             try {
               const parsed = JSON.parse(payload) as { response?: unknown };
               if (typeof parsed.response === "string" && parsed.response) {
-                send({ type: "token", value: parsed.response });
+                const visible = filter.push(parsed.response);
+                if (visible) send({ type: "token", value: visible });
               }
             } catch {
               // ignore non-JSON keep-alive chunks
             }
           }
         }
+
+        const tail = filter.flush();
+        if (tail) send({ type: "token", value: tail });
       } catch (err) {
         send({
           type: "error",
@@ -170,14 +242,15 @@ export async function handleChat(
 
   const model = ctx.env.CHAT_MODEL?.trim() || DEFAULT_MODEL;
   const booking = parseBookingContext(req.body);
+  const systemContent = buildSystemPrompt({
+    today: todayIso(),
+    extraKnowledge: ctx.env.CLINIC_KNOWLEDGE,
+    sessionNote: booking ? bookingSessionNote(booking) : undefined,
+  });
   const messages: ModelMessage[] = [
     {
       role: "system",
-      content: buildSystemPrompt({
-        today: todayIso(),
-        extraKnowledge: ctx.env.CLINIC_KNOWLEDGE,
-        sessionNote: booking ? bookingSessionNote(booking) : undefined,
-      }),
+      content: /qwen/i.test(model) ? `${systemContent}\n\n/no_think` : systemContent,
     },
     ...turns,
   ];
@@ -206,7 +279,7 @@ export async function handleChat(
       for (const call of calls) {
         const toolCall: ToolCall = {
           name: call.name,
-          arguments: call.arguments ?? {},
+          arguments: normalizeArguments(call.arguments),
         };
 
         let toolResult: unknown;

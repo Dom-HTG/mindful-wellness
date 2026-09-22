@@ -15,7 +15,20 @@ function asStringArray(value: unknown): string[] {
       .filter((item) => item.length > 0);
   }
   if (typeof value === "string" && value.trim()) {
-    return value
+    const trimmed = value.trim();
+    if (trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed) as unknown;
+        if (Array.isArray(parsed)) {
+          return parsed
+            .map((item) => asString(item))
+            .filter((item) => item.length > 0);
+        }
+      } catch {
+        // not valid JSON, fall through to delimiter splitting
+      }
+    }
+    return trimmed
       .split(/[;,\n]/)
       .map((item) => item.trim())
       .filter(Boolean);

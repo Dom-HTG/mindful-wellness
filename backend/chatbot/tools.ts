@@ -1,7 +1,7 @@
 import type { ApiContext } from "../admin/lib/context";
 import { parseBookingInput } from "../admin/lib/validation";
 import type { Booking } from "../admin/types";
-import { BOOKING_TIME_SLOTS, type BookingTimeSlot } from "./knowledge";
+import { BOOKING_TIME_SLOTS, type BookingTimeSlot, INTAKE_CONDITIONS, INTAKE_CONCERNS, INTAKE_DURATIONS } from "./knowledge";
 
 export interface ToolDefinition {
   name: string;
@@ -44,7 +44,7 @@ export const TOOLS: ToolDefinition[] = [
       properties: {
         name: { type: "string", description: "Patient's full name." },
         email: { type: "string", description: "Patient's email address." },
-        phone: { type: "string", description: "Optional phone number." },
+        phone: { type: "string", description: "Patient's phone number." },
         service: {
           type: "string",
           description:
@@ -63,23 +63,36 @@ export const TOOLS: ToolDefinition[] = [
         concerns: {
           type: "array",
           items: { type: "string" },
-          description: "Optional list of primary health concerns.",
+          description: `Primary health concerns. Choose from: ${INTAKE_CONCERNS.join("; ")}.`,
         },
         conditions: {
           type: "array",
           items: { type: "string" },
-          description: "Optional list of diagnosed medical conditions.",
+          description: `Diagnosed medical conditions. Choose from: ${INTAKE_CONDITIONS.join("; ")}. Use ["None"] if they have none.`,
         },
         duration: {
           type: "string",
-          description: "Optional how long they have experienced symptoms.",
+          enum: [...INTAKE_DURATIONS],
+          description: "How long they have experienced the concern.",
         },
         symptoms: {
           type: "string",
-          description: "Optional current medications or specific symptoms.",
+          description:
+            'Current medications or specific symptoms, in the patient\'s own words. Use "None" if none.',
         },
       },
-      required: ["name", "email", "service", "date", "timeSlot"],
+      required: [
+        "name",
+        "email",
+        "phone",
+        "service",
+        "date",
+        "timeSlot",
+        "concerns",
+        "conditions",
+        "duration",
+        "symptoms",
+      ],
     },
   },
 ];
@@ -114,19 +127,6 @@ function asString(value: unknown): string {
   if (typeof value === "string") return value.trim();
   if (typeof value === "number") return String(value);
   return "";
-}
-
-function asStringArray(value: unknown): string[] | undefined {
-  if (Array.isArray(value)) {
-    return value.map((item) => asString(item)).filter(Boolean);
-  }
-  if (typeof value === "string" && value.trim()) {
-    return value
-      .split(/[;,\n]/)
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }
-  return undefined;
 }
 
 function isValidIsoDate(value: string): boolean {
@@ -191,7 +191,17 @@ export function getSlotCapacity(env: Record<string, string | undefined>): number
 export async function checkAvailability(
   dateInput: string,
   ctx: ApiContext,
+  options: ToolExecutionOptions = {},
 ): Promise<AvailabilityResult> {
+  const haystack = (options.userText ?? "").toLowerCase();
+  if (haystack && !DATE_SIGNAL.test(haystack)) {
+    return {
+      ok: false,
+      error:
+        "The patient has not said which day they want yet. Ask them for a day before checking availability; never guess a date.",
+    };
+  }
+
   const date = normalizeDate(dateInput);
   if (!isValidIsoDate(date)) {
     return { ok: false, error: "Invalid date. Use YYYY-MM-DD." };
@@ -242,8 +252,8 @@ export async function createChatBooking(
     notes: asString(args.notes),
     duration: asString(args.duration),
     symptoms: asString(args.symptoms),
-    concerns: asStringArray(args.concerns),
-    conditions: asStringArray(args.conditions),
+    concerns: args.concerns,
+    conditions: args.conditions,
     source: "chatbot",
   });
 
@@ -278,6 +288,46 @@ export async function createChatBooking(
       ok: false,
       errors: [
         "A preferred time window is required. Ask the patient whether Morning, Afternoon, or Evening suits them.",
+      ],
+    };
+  }
+  if (!value.phone) {
+    return {
+      ok: false,
+      errors: [
+        "A phone number is required. Ask the patient for the best number to reach them.",
+      ],
+    };
+  }
+  if (!value.concerns || value.concerns.length === 0) {
+    return {
+      ok: false,
+      errors: [
+        "The health screening is incomplete. Ask the patient what their main health concern is before booking.",
+      ],
+    };
+  }
+  if (!value.conditions || value.conditions.length === 0) {
+    return {
+      ok: false,
+      errors: [
+        'The health screening is incomplete. Ask whether they have any diagnosed conditions before booking (use ["None"] if they have none).',
+      ],
+    };
+  }
+  if (!value.duration) {
+    return {
+      ok: false,
+      errors: [
+        "The health screening is incomplete. Ask how long they have been experiencing this before booking.",
+      ],
+    };
+  }
+  if (!value.symptoms) {
+    return {
+      ok: false,
+      errors: [
+        'The health screening is incomplete. Ask about current medications or specific symptoms before booking (use "None" if none).',
       ],
     };
   }
@@ -326,7 +376,7 @@ export async function createChatBooking(
   }
 
   if (value.date && value.timeSlot) {
-    const availability = await checkAvailability(value.date, ctx);
+    const availability = await checkAvailability(value.date, ctx, options);
     if (
       availability.ok &&
       availability.availableSlots &&
@@ -363,7 +413,7 @@ export async function executeTool(
   const args = call.arguments ?? {};
   switch (call.name) {
     case "check_availability":
-      return checkAvailability(asString(args.date), ctx);
+      return checkAvailability(asString(args.date), ctx, options);
     case "create_booking":
       return createChatBooking(args, ctx, options);
     default:
