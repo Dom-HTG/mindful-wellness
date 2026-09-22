@@ -1,0 +1,14 @@
+name = "mindfulwellness"
+main = "worker/index.ts"
+compatibility_date = "2025-09-23"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[vars]
+BOOKINGS_COLLECTION = "bookings"
+
+[observability]
+enabled = true

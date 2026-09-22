@@ -31,6 +31,7 @@ import {
   buildMailtoUrl,
   type BookingFormData,
 } from "../lib/booking";
+import { createBooking } from "../lib/bookingApi";
 import { copyText } from "../lib/clipboard";
 
 const CONCERNS = [
@@ -163,6 +164,21 @@ export function BookingModal() {
     };
     const text = buildBookingPayload(data);
     setPayload(text);
+
+    createBooking({
+      name,
+      email,
+      phone,
+      service,
+      date,
+      timeSlot,
+      notes,
+      concerns,
+      conditions,
+      duration,
+      symptoms,
+      source: "website",
+    }).catch(() => undefined);
 
     if (CLINIC_CONFIG.web3formsKey) {
       fetch("https://api.web3forms.com/submit", {

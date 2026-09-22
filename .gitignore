@@ -1,6 +1,14 @@
 node_modules/
 dist/
 .vercel/
+.wrangler/
+.dev.vars
+.dev.vars.*
 .ds_store
 *.log
 scratch/
+
+.env
+.env.local
+.env.*.local
+backend/admin/.data/

@@ -6,6 +6,7 @@ import { Grain } from "./components/ui/Grain";
 import { HomePage } from "./pages/HomePage";
 import { AboutPage } from "./pages/AboutPage";
 import { ServicesPage } from "./pages/ServicesPage";
+import { AdminPage } from "./pages/AdminPage";
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <DirectLinkHandler />
         <Grain />
         <Routes>
+          <Route path="/admin/*" element={<AdminPage />} />
           <Route element={<Layout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />

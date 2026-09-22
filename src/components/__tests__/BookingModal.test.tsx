@@ -1,8 +1,23 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BookingModal } from "../BookingModal";
 import { AppProvider, useApp } from "../../context/AppProvider";
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({
+      ok: true,
+      status: 201,
+      text: async () => JSON.stringify({ booking: { id: "b-1" } }),
+    })) as unknown as typeof fetch,
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function Harness() {
   const { openBooking } = useApp();
@@ -47,6 +62,13 @@ describe("BookingModal", () => {
 
     expect(screen.getByText("Intake & Consultation Received")).toBeInTheDocument();
     expect(screen.getByText(/Nutritional Counseling/i)).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/bookings"),
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
   });
 
   it("starts on step one with the preselectable service", async () => {
