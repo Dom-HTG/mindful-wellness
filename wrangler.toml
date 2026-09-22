@@ -1,4 +1,4 @@
-name = "mindfulwellness"
+name = "mindful-wellness"
 main = "worker/index.ts"
 compatibility_date = "2025-09-23"
 

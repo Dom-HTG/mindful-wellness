@@ -2,6 +2,11 @@ import "@testing-library/jest-dom/vitest";
 import { vi } from "vitest";
 import React from "react";
 
+vi.stubEnv("VITE_FIREBASE_API_KEY", "");
+vi.stubEnv("VITE_FIREBASE_AUTH_DOMAIN", "");
+vi.stubEnv("VITE_FIREBASE_PROJECT_ID", "");
+vi.stubEnv("VITE_FIREBASE_APP_ID", "");
+
 if (typeof window !== "undefined" && !window.matchMedia) {
   window.matchMedia = (query: string): MediaQueryList =>
     ({

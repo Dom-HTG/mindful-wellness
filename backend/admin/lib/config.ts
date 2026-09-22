@@ -28,6 +28,114 @@ function decodeBase64Utf8(input: string): string {
   return new TextDecoder().decode(bytes);
 }
 
+function extractJsonObject(input: string): string | null {
+  const start = input.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < input.length; i += 1) {
+    const ch = input[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "{") depth += 1;
+    else if (ch === "}") {
+      depth -= 1;
+      if (depth === 0) return input.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
+function normalizeServiceAccount(
+  parsed: Record<string, unknown>,
+): Record<string, string> | null {
+  const projectId = typeof parsed.project_id === "string" ? parsed.project_id : "";
+  const clientEmail =
+    typeof parsed.client_email === "string" ? parsed.client_email : "";
+  const privateKey =
+    typeof parsed.private_key === "string" ? parsed.private_key : "";
+  if (!projectId || !clientEmail || !privateKey) return null;
+  return {
+    project_id: projectId,
+    client_email: clientEmail,
+    private_key: privateKey.replace(/\\n/g, "\n"),
+  };
+}
+
+function tryParseJson(text: string): Record<string, string> | null {
+  const objectText = extractJsonObject(text);
+  if (!objectText) return null;
+  try {
+    return normalizeServiceAccount(
+      JSON.parse(objectText) as Record<string, unknown>,
+    );
+  } catch {
+    return null;
+  }
+}
+
+function tryParseBase64(text: string): Record<string, string> | null {
+  try {
+    return tryParseJson(decodeBase64Utf8(text.replace(/\s+/g, "")));
+  } catch {
+    return null;
+  }
+}
+
+function parseServiceAccount(raw: string): Record<string, string> | null {
+  let value = raw.trim();
+
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    value = value.slice(1, -1);
+  }
+
+  const direct = tryParseJson(value) ?? tryParseBase64(value);
+  if (direct) return direct;
+
+  const eq = value.indexOf("=");
+  if (eq > 0) {
+    const head = value.slice(0, eq).trim();
+    const tail = value.slice(eq + 1).trim();
+    if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(head)) {
+      return tryParseJson(tail) ?? tryParseBase64(tail);
+    }
+  }
+
+  return null;
+}
+
+export function getServiceAccount(
+  env: EnvRecord = defaultEnv(),
+): Record<string, string> | null {
+  const raw = readEnv(env, "FIREBASE_SERVICE_ACCOUNT");
+  if (raw) {
+    const account = parseServiceAccount(raw);
+    if (account) return account;
+  }
+
+  const projectId = readEnv(env, "FIREBASE_PROJECT_ID");
+  const clientEmail = readEnv(env, "FIREBASE_CLIENT_EMAIL");
+  const privateKey = readEnv(env, "FIREBASE_PRIVATE_KEY");
+  if (projectId && clientEmail && privateKey) {
+    return {
+      project_id: projectId,
+      client_email: clientEmail,
+      private_key: privateKey.replace(/\\n/g, "\n"),
+    };
+  }
+
+  return null;
+}
+
 export function getAdminEmails(env: EnvRecord = defaultEnv()): string[] {
   return readEnv(env, "ADMIN_EMAILS")
     .split(/[,\s;]+/)
@@ -47,45 +155,14 @@ export function isAdminEmail(
   return allowed.includes(email.trim().toLowerCase());
 }
 
-export function getServiceAccount(
-  env: EnvRecord = defaultEnv(),
-): Record<string, string> | null {
-  const raw = readEnv(env, "FIREBASE_SERVICE_ACCOUNT");
-  if (raw) {
-    try {
-      const json = raw.startsWith("{") ? raw : decodeBase64Utf8(raw);
-      const parsed = JSON.parse(json) as Record<string, string>;
-      if (parsed.project_id && parsed.client_email && parsed.private_key) {
-        return {
-          ...parsed,
-          private_key: parsed.private_key.replace(/\\n/g, "\n"),
-        };
-      }
-    } catch {
-      return null;
-    }
-  }
-
-  const projectId = readEnv(env, "FIREBASE_PROJECT_ID");
-  const clientEmail = readEnv(env, "FIREBASE_CLIENT_EMAIL");
-  const privateKey = readEnv(env, "FIREBASE_PRIVATE_KEY");
-  if (projectId && clientEmail && privateKey) {
-    return {
-      project_id: projectId,
-      client_email: clientEmail,
-      private_key: privateKey.replace(/\\n/g, "\n"),
-    };
-  }
-
-  return null;
-}
-
 export function isFirebaseConfigured(env: EnvRecord = defaultEnv()): boolean {
   return getServiceAccount(env) !== null;
 }
 
 export function getFirebaseProjectId(env: EnvRecord = defaultEnv()): string {
-  const explicit = readEnv(env, "FIREBASE_PROJECT_ID");
+  const explicit =
+    readEnv(env, "FIREBASE_PROJECT_ID") ||
+    readEnv(env, "VITE_FIREBASE_PROJECT_ID");
   if (explicit) return explicit;
   return getServiceAccount(env)?.project_id ?? "";
 }
